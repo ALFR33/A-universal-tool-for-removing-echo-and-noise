@@ -1,0 +1,175 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<div class="kapwing-container">
+    <h2>منصة تنقية وتصفية صدى الصوت</h2>
+    <p class="subtitle">الأداة الاحترافية المعتمدة لمدونة صحيح لإزالة صدى التلاوات والأناشيد</p>
+    
+    <div class="upload-zone" id="drop-zone">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span id="upload-text">اضغط هنا لرفع الملف الصوتي</span>
+        <input type="file" id="audio-input" accept="audio/*" />
+    </div>
+
+    <div class="url-bar">
+        <input type="text" placeholder="أو الصق رابط الملف الصوتي المباشر هنا..." readonly />
+        <i class="fa-solid fa-wand-magic-sparkles sparkle"></i>
+    </div>
+
+    <div class="sec-options">
+        <div class="sec-box">استيراد من السحابة</div>
+        <div class="sec-box">تجربة عينة صوتية</div>
+    </div>
+
+    <div class="divider">تحديد جودة ترميز المسار الصوتي</div>
+
+    <div class="tags">
+        <span>WAV</span><span>MP3</span><span>Stereo</span><span>Mono</span><span>44.1kHz</span>
+    </div>
+
+    <div id="process-zone" class="result-box">
+        <p style="color:#a0a0a0; font-size:14px; margin-bottom:10px;">الملف الأصلي:</p>
+        <audio id="audio-player" controls></audio>
+        <button id="clean-btn" class="action-btn">تطبيق فلاتر إزالة الصدى والتنقية</button>
+        <div id="loading-status" class="status-msg"></div>
+        
+        <div id="download-zone" style="display:none; margin-top:20px; border-top:1px solid #2d2d2d; padding-top:15px;">
+            <p style="color:#00b894; font-size:14px; margin-bottom:10px;">تمت تصفية الترددات بنجاح:</p>
+            <audio id="result-player" controls></audio>
+            <br>
+            <a id="download-action" class="dl-btn" download="soheeih-clean-audio.wav">تحميل الملف النقي الآن</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .kapwing-container {
+        background-color: #121212 !important;
+        color: #ffffff !important;
+        direction: rtl !important;
+        max-width: 650px;
+        margin: 20px auto;
+        padding: 25px;
+        border-radius: 16px;
+        border: 1px solid #2d2d2d;
+        font-family: sans-serif;
+        text-align: center;
+    }
+    .kapwing-container h2 { font-size: 24px; margin-bottom: 5px; color:#fff; }
+    .subtitle { color: #a0a0a0; font-size: 13px; margin-bottom: 20px; }
+    .upload-zone {
+        background-color: #1e1e1e;
+        border: 2px dashed #444;
+        border-radius: 12px;
+        padding: 40px 20px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        position: relative;
+    }
+    .upload-zone i { font-size: 30px; display: block; margin-bottom: 10px; color: #fff; }
+    .upload-zone input[type="file"] { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+    .url-bar { position: relative; margin-bottom: 15px; }
+    .url-bar input { width: 100%; background:#1e1e1e; border:1px solid #2d2d2d; padding:12px; border-radius:8px; color:#fff; box-sizing:border-box; text-align:right; }
+    .sparkle { position: absolute; left: 15px; top: 14px; color: #f1c40f; }
+    .sec-options { display: flex; gap: 10px; margin-bottom: 20px; }
+    .sec-box { flex:1; background:#1e1e1e; border:1px solid #2d2d2d; padding:10px; border-radius:8px; font-size:13px; color:#fff; }
+    .divider { color: #a0a0a0; font-size: 13px; margin: 15px 0; }
+    .tags { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
+    .tags span { background: #262626; border: 1px solid #2d2d2d; padding: 5px 12px; border-radius: 6px; font-size: 12px; }
+    .result-box { display: none; background: #181818; padding: 15px; border-radius: 10px; border: 1px solid #2d2d2d; margin-top: 15px; }
+    .action-btn { background: #00b894; color: white; border: none; padding: 12px; width: 100%; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+    .status-msg { margin: 10px 0; color: #f39c12; font-size: 13px; }
+    .dl-btn { display: inline-block; margin-top: 12px; padding: 8px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; }
+    audio { width: 100%; margin-top: 5px; }
+</style>
+
+<script>
+(function() {
+    document.addEventListener("DOMContentLoaded", function() {
+        var fileIn = document.getElementById('audio-input');
+        var upText = document.getElementById('upload-text');
+        var pZone = document.getElementById('process-zone');
+        var origAudio = document.getElementById('audio-player');
+        var cleanBtn = document.getElementById('clean-btn');
+        var statusMsg = document.getElementById('loading-status');
+        var dlZone = document.getElementById('download-zone');
+        var resPlayer = document.getElementById('result-player');
+        var dlAction = document.getElementById('download-action');
+        var loadedBuffer = null;
+
+        if(!fileIn) return;
+
+        fileIn.addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if(file) {
+                upText.innerText = "تم اختيار: " + file.name;
+                origAudio.src = URL.createObjectURL(file);
+                pZone.style.display = 'block';
+                dlZone.style.display = 'none';
+                statusMsg.innerText = "جاري تجهيز الملف فوريّاً...";
+                
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                    var actx = new (window.AudioContext || window.webkitAudioContext)();
+                    actx.decodeAudioData(evt.target.result, function(buf) {
+                        loadedBuffer = buf;
+                        statusMsg.innerText = "الملف جاهز الآن للفلترة والتنقية.";
+                    }, function() {
+                        statusMsg.innerText = "عذراً، يرجى تجربة ملف MP3 أو WAV آخر.";
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+        cleanBtn.addEventListener('click', function() {
+            if(!loadedBuffer) return;
+            statusMsg.innerText = "جاري تصفية ترددات الصدى والارتداد...";
+            
+            var octx = new OfflineAudioContext(loadedBuffer.numberOfChannels, loadedBuffer.length, loadedBuffer.sampleRate);
+            var src = octx.createBufferSource();
+            src.buffer = loadedBuffer;
+            
+            var hpf = octx.createBiquadFilter();
+            hpf.type = "highpass"; hpf.frequency.value = 135;
+            
+            var peak = octx.createBiquadFilter();
+            peak.type = "peaking"; peak.frequency.value = 360; peak.Q.value = 1.3; peak.gain.value = -9;
+            
+            var comp = octx.createDynamicsCompressor();
+            comp.threshold.value = -22; comp.knee.value = 22; comp.ratio.value = 7; comp.attack.value = 0.005; comp.release.value = 0.08;
+            
+            src.connect(hpf); hpf.connect(peak); peak.connect(comp); comp.connect(octx.destination);
+            src.start(0);
+            
+            octx.startRendering().then(function(rendered) {
+                var numOfChan = rendered.numberOfChannels,
+                    len = rendered.length * numOfChan * 2 + 44,
+                    ab = new ArrayBuffer(len), view = new DataView(ab),
+                    ch = [], i, sample, offset = 0, pos = 0;
+                
+                view.setUint32(0, 0x46464952, true); view.setUint32(4, len - 8, true); view.setUint32(8, 0x45564157, true);
+                view.setUint32(12, 0x20746d66, true); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+                view.setUint16(22, numOfChan, true); view.setUint32(24, rendered.sampleRate, true);
+                view.setUint32(28, rendered.sampleRate * 2 * numOfChan, true); view.setUint16(32, numOfChan * 2, true);
+                view.setUint16(34, 16, true); view.setUint32(36, 0x61746164, true); view.setUint32(40, len - 44, true);
+                
+                for (i = 0; i < numOfChan; i++) ch.push(rendered.getChannelData(i));
+                pos = 44;
+                while (pos < len && offset < rendered.length) {
+                    for (i = 0; i < numOfChan; i++) {
+                        sample = Math.max(-1, Math.min(1, ch[i][offset]));
+                        sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                        view.setInt16(pos, sample, true); pos += 2;
+                    }
+                    offset++;
+                }
+                var blob = new Blob([ab], {type: "audio/wav"});
+                var url = URL.createObjectURL(blob);
+                resPlayer.src = url; dlAction.href = url;
+                dlZone.style.display = 'block';
+                statusMsg.innerText = "تمت التنقية بنجاح!";
+            });
+        });
+    });
+})();
+</script>
